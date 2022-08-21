@@ -5,6 +5,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 )
 
@@ -26,6 +27,7 @@ func main() {
 
 	// Get the user interfaces
 	edit, preview := cfg.makeUI()
+	cfg.createMenuItems(win)
 
 	// Set the content of the window
 	win.SetContent(container.NewHSplit(edit, preview))
@@ -56,12 +58,41 @@ func (c *config) createMenuItems(w fyne.Window) {
 	saveMenuItem := fyne.NewMenuItem("Save", func() {
 		fmt.Println("Save...")
 	})
+	c.SaveMenuItem = saveMenuItem
+	c.SaveMenuItem.Disabled = true
 
-	saveAsMenuItem := fyne.NewMenuItem("Save as...", func() {
-		fmt.Println("Save as...")
-	})
+	saveAsMenuItem := fyne.NewMenuItem("Save as...", c.saveAs(w))
 
 	fileMenu := fyne.NewMenu("File", openMenuItem, saveMenuItem, saveAsMenuItem)
 	mainMenu := fyne.NewMainMenu(fileMenu)
 	w.SetMainMenu(mainMenu)
+}
+
+func (c *config) saveAs(win fyne.Window) func() {
+	fmt.Println("saveAs")
+
+	return func() {
+		saveDialog := dialog.NewFileSave(func(write fyne.URIWriteCloser, err error) {
+			if err != nil {
+				dialog.ShowError(err, win)
+				return
+			}
+			if write == nil {
+				// User cancelled
+				return
+			}
+
+			// Save the file
+			write.Write([]byte(c.EditWidget.Text))
+			c.CurrentFile = write.URI()
+
+			defer write.Close()
+
+			win.SetTitle(win.Title() + " " + write.URI().Name())
+
+			c.SaveMenuItem.Disabled = false
+		}, win)
+
+		saveDialog.Show()
+	}
 }
