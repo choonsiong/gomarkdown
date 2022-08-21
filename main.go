@@ -6,8 +6,10 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
 	"io"
+	"strings"
 )
 
 type config struct {
@@ -67,6 +69,8 @@ func (c *config) createMenuItems(w fyne.Window) {
 	w.SetMainMenu(mainMenu)
 }
 
+var filter = storage.NewExtensionFileFilter([]string{".md", ".MD"})
+
 func (c *config) openFunc(win fyne.Window) func() {
 	fmt.Println("openFunc")
 
@@ -93,6 +97,7 @@ func (c *config) openFunc(win fyne.Window) func() {
 			c.SaveMenuItem.Disabled = false
 		}, win)
 
+		openDialog.SetFilter(filter)
 		openDialog.Show()
 	}
 }
@@ -111,6 +116,11 @@ func (c *config) saveAsFunc(win fyne.Window) func() {
 				return
 			}
 
+			if !strings.HasSuffix(strings.ToLower(write.URI().String()), ".md") {
+				dialog.ShowInformation("Error", "Please name your file with .md extension!", win)
+				return
+			}
+
 			defer write.Close()
 
 			// Save the file
@@ -120,6 +130,8 @@ func (c *config) saveAsFunc(win fyne.Window) func() {
 			c.SaveMenuItem.Disabled = false
 		}, win)
 
+		saveDialog.SetFileName("untitled.md")
+		saveDialog.SetFilter(filter)
 		saveDialog.Show()
 	}
 }
