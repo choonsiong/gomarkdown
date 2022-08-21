@@ -7,11 +7,15 @@ get-fyne:
 install-fyne-cmd:
 	@go install fyne.io/fyne/v2/cmd/fyne@latest
 
-build:
+build: clean
 	@go build -o gomarkdown .
 
 clean:
+	@go clean
 	@rm -f gomarkdown
 
 package:
 	@fyne package -appVersion ${VERSION} -name ${APPNAME} -release
+
+test:
+	@go test -v ./...
