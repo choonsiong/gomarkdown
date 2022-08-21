@@ -15,6 +15,7 @@ clean:
 	@rm -f gomarkdown
 
 package:
+	@rm -rf GoMarkdown.app
 	@fyne package -appVersion ${VERSION} -name ${APPNAME} -release
 
 test:
