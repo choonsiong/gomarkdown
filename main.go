@@ -56,9 +56,7 @@ func (c *config) makeUI() (*widget.Entry, *widget.RichText) {
 func (c *config) createMenuItems(w fyne.Window) {
 	openMenuItem := fyne.NewMenuItem("Open...", c.openFunc(w))
 
-	saveMenuItem := fyne.NewMenuItem("Save", func() {
-		fmt.Println("Save...")
-	})
+	saveMenuItem := fyne.NewMenuItem("Save", c.saveFunc(w))
 	c.SaveMenuItem = saveMenuItem
 	c.SaveMenuItem.Disabled = true
 
@@ -115,13 +113,12 @@ func (c *config) saveAsFunc(win fyne.Window) func() {
 				// User cancelled
 				return
 			}
+			defer write.Close()
 
 			if !strings.HasSuffix(strings.ToLower(write.URI().String()), ".md") {
 				dialog.ShowInformation("Error", "Please name your file with .md extension!", win)
 				return
 			}
-
-			defer write.Close()
 
 			// Save the file
 			write.Write([]byte(c.EditWidget.Text))
@@ -133,5 +130,21 @@ func (c *config) saveAsFunc(win fyne.Window) func() {
 		saveDialog.SetFileName("untitled.md")
 		saveDialog.SetFilter(filter)
 		saveDialog.Show()
+	}
+}
+
+func (c *config) saveFunc(win fyne.Window) func() {
+	fmt.Println("saveFunc")
+
+	return func() {
+		if c.CurrentFile != nil {
+			write, err := storage.Writer(c.CurrentFile)
+			if err != nil {
+				dialog.ShowError(err, win)
+				return
+			}
+			defer write.Close()
+			write.Write([]byte(c.EditWidget.Text))
+		}
 	}
 }
