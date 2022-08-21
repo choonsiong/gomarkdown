@@ -20,3 +20,5 @@ package:
 
 test:
 	@go test -v ./...
+
+.PHONY: build clean package test get-fyne install-fyne-cmd
