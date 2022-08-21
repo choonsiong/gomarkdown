@@ -7,6 +7,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
+	"io"
 )
 
 type config struct {
@@ -51,9 +52,7 @@ func (c *config) makeUI() (*widget.Entry, *widget.RichText) {
 }
 
 func (c *config) createMenuItems(w fyne.Window) {
-	openMenuItem := fyne.NewMenuItem("Open...", func() {
-		fmt.Println("Open...")
-	})
+	openMenuItem := fyne.NewMenuItem("Open...", c.openFunc(w))
 
 	saveMenuItem := fyne.NewMenuItem("Save", func() {
 		fmt.Println("Save...")
@@ -61,15 +60,45 @@ func (c *config) createMenuItems(w fyne.Window) {
 	c.SaveMenuItem = saveMenuItem
 	c.SaveMenuItem.Disabled = true
 
-	saveAsMenuItem := fyne.NewMenuItem("Save as...", c.saveAs(w))
+	saveAsMenuItem := fyne.NewMenuItem("Save as...", c.saveAsFunc(w))
 
 	fileMenu := fyne.NewMenu("File", openMenuItem, saveMenuItem, saveAsMenuItem)
 	mainMenu := fyne.NewMainMenu(fileMenu)
 	w.SetMainMenu(mainMenu)
 }
 
-func (c *config) saveAs(win fyne.Window) func() {
-	fmt.Println("saveAs")
+func (c *config) openFunc(win fyne.Window) func() {
+	fmt.Println("openFunc")
+
+	return func() {
+		openDialog := dialog.NewFileOpen(func(read fyne.URIReadCloser, err error) {
+			if err != nil {
+				dialog.ShowError(err, win)
+				return
+			}
+			if read == nil {
+				return
+			}
+			defer read.Close()
+
+			data, err := io.ReadAll(read)
+			if err != nil {
+				dialog.ShowError(err, win)
+				return
+			}
+
+			c.EditWidget.SetText(string(data))
+			c.CurrentFile = read.URI()
+			win.SetTitle(win.Title() + " " + read.URI().Name())
+			c.SaveMenuItem.Disabled = false
+		}, win)
+
+		openDialog.Show()
+	}
+}
+
+func (c *config) saveAsFunc(win fyne.Window) func() {
+	fmt.Println("saveAsFunc")
 
 	return func() {
 		saveDialog := dialog.NewFileSave(func(write fyne.URIWriteCloser, err error) {
@@ -82,14 +111,12 @@ func (c *config) saveAs(win fyne.Window) func() {
 				return
 			}
 
+			defer write.Close()
+
 			// Save the file
 			write.Write([]byte(c.EditWidget.Text))
 			c.CurrentFile = write.URI()
-
-			defer write.Close()
-
 			win.SetTitle(win.Title() + " " + write.URI().Name())
-
 			c.SaveMenuItem.Disabled = false
 		}, win)
 
